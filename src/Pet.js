@@ -14,33 +14,17 @@ export class Pet {
     this.speed = 2;
     
     // 状态
-    this.state = 'idle'; // idle, walk, run, jump, sleep
+    this.state = 'idle'; // idle, walk, run, jump, sleep, blink, spin
     this.direction = 1; // 1: 右, -1: 左
     
     // 动画
     this.frame = 0;
     this.frameCount = 0;
-    this.frameDelay = 10;
-    this.animFPS = 8;
+    this.frameDelay = 20;  // 降低速度
+    this.animFPS = 4;
     
-    // 宠物颜色和大小
-    this.bodyColor = '#FFB6C1';
-    this.eyeColor = '#000';
-    this.cheekColor = '#FF69B4';
-    this.size = 80;
-    
-    // 宠物部件相对位置
-    this.parts = {
-      body: { x: 0, y: 0 },
-      head: { x: 0, y: -25 },
-      leftEye: { x: -10, y: -30 },
-      rightEye: { x: 10, y: -30 },
-      leftCheek: { x: -20, y: -20 },
-      rightCheek: { x: 20, y: -20 },
-      mouth: { x: 0, y: -18 },
-      leftEar: { x: -20, y: -45 },
-      rightEar: { x: 20, y: -45 }
-    };
+    // 宠物大小
+    this.size = 120;  // 减小宠物尺寸以便完整显示
     
     // 点击效果
     this.clickEffect = null;
@@ -49,6 +33,36 @@ export class Pet {
     // 空闲行为计时器
     this.idleTimer = 0;
     this.idleAction = 'none';
+    
+    // 旋转动画
+    this.spinAngle = 0;
+    
+    // 加载宠物图片 (独立帧)
+    this.frames = [];
+    this.imageLoaded = false;
+    this.totalFrames = 57;  // 57个帧 (frame_0000.png - frame_0056.png)
+    this.currentFrameIndex = 0;
+    this.loadFrames();
+  }
+  
+  // 加载所有帧
+  loadFrames() {
+    let loadedCount = 0;
+    for (let i = 0; i < this.totalFrames; i++) {
+      const img = new Image();
+      img.onload = () => {
+        loadedCount++;
+        if (loadedCount === this.totalFrames) {
+          this.imageLoaded = true;
+          console.log('🐾 所有帧加载成功!');
+        }
+      };
+      img.onerror = () => {
+        console.error('❌ 帧 ' + i + ' 加载失败');
+      };
+      img.src = `/src/frames/frame_${String(i).padStart(4, '0')}.png`;
+      this.frames.push(img);
+    }
   }
   
   // 更新宠物状态
@@ -56,8 +70,15 @@ export class Pet {
     // 更新动画帧
     this.frameCount++;
     if (this.frameCount >= this.frameDelay) {
-      this.frame = (this.frame + 1) % 4;
+      this.frame = (this.frame + 1) % this.totalFrames;
       this.frameCount = 0;
+    }
+    
+    // 更新旋转角度
+    if (this.state === 'spin') {
+      this.spinAngle += 15;
+    } else {
+      this.spinAngle = 0;
     }
     
     // 移动到目标位置
@@ -224,26 +245,38 @@ export class Pet {
     // 居中绘制
     ctx.translate(this.x, this.y - bounce);
     
+    // 旋转效果
+    if (this.state === 'spin') {
+      ctx.rotate(this.spinAngle * Math.PI / 180);
+    }
+    
     // 缩放（朝向）
     ctx.scale(this.direction, 1);
     
-    // 绘制身体
-    this.drawBody(ctx);
+    // 眨眼效果 - 缩小高度
+    if (this.state === 'blink') {
+      ctx.scale(1, 0.3);
+    }
     
-    // 绘制头部
-    this.drawHead(ctx);
-    
-    // 绘制眼睛
-    this.drawEyes(ctx);
-    
-    // 绘制腮红
-    this.drawCheeks(ctx);
-    
-    // 绘制嘴巴
-    this.drawMouth(ctx);
-    
-    // 绘制耳朵
-    this.drawEars(ctx);
+    // 绘制当前帧
+    if (this.imageLoaded && this.frames[this.frame]) {
+      const halfSize = this.size / 2;
+      ctx.drawImage(
+        this.frames[this.frame],
+        -halfSize, -halfSize, this.size, this.size
+      );
+    } else {
+      // 图片未加载时显示占位
+      ctx.fillStyle = '#FFB6C1';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#FFF';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Loading...', 0, 5);
+    }
     
     ctx.restore();
     
@@ -251,134 +284,6 @@ export class Pet {
     if (this.clickEffect) {
       this.drawClickEffect(ctx);
     }
-  }
-  
-  // 绘制身体
-  drawBody(ctx) {
-    const bounce = this.bounceEffect.active ? Math.sin(this.bounceEffect.value * 0.5) * 2 : 0;
-    
-    ctx.fillStyle = this.bodyColor;
-    ctx.beginPath();
-    ctx.ellipse(0, 10 + bounce, 35, 30, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 肚子
-    ctx.fillStyle = '#FFF0F5';
-    ctx.beginPath();
-    ctx.ellipse(0, 15 + bounce, 20, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // 绘制头部
-  drawHead(ctx) {
-    const bounce = this.bounceEffect.active ? Math.sin(this.bounceEffect.value * 0.3) : 0;
-    
-    ctx.fillStyle = this.bodyColor;
-    ctx.beginPath();
-    ctx.arc(0, -20 + bounce, 30, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // 绘制眼睛
-  drawEyes(ctx) {
-    const eyeY = -25;
-    const eyeSize = 5;
-    
-    // 眨眼效果
-    let eyeHeight = eyeSize;
-    if (this.state === 'blink') {
-      eyeHeight = 1;
-    }
-    
-    ctx.fillStyle = this.eyeColor;
-    
-    // 左眼
-    ctx.beginPath();
-    ctx.ellipse(-10, eyeY, eyeSize, eyeHeight, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 右眼
-    ctx.beginPath();
-    ctx.ellipse(10, eyeY, eyeSize, eyeHeight, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 眼睛高光
-    ctx.fillStyle = '#FFF';
-    ctx.beginPath();
-    ctx.arc(-8, eyeY - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(12, eyeY - 2, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // 绘制腮红
-  drawCheeks(ctx) {
-    ctx.fillStyle = this.cheekColor;
-    ctx.globalAlpha = 0.5;
-    
-    ctx.beginPath();
-    ctx.ellipse(-20, -15, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.ellipse(20, -15, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
-  }
-  
-  // 绘制嘴巴
-  drawMouth(ctx) {
-    ctx.strokeStyle = this.eyeColor;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    
-    ctx.beginPath();
-    ctx.moveTo(-5, -12);
-    ctx.quadraticCurveTo(0, -8, 5, -12);
-    ctx.stroke();
-  }
-  
-  // 绘制耳朵
-  drawEars(ctx) {
-    ctx.fillStyle = this.bodyColor;
-    
-    // 左耳
-    ctx.beginPath();
-    ctx.moveTo(-25, -35);
-    ctx.lineTo(-35, -55);
-    ctx.lineTo(-15, -40);
-    ctx.closePath();
-    ctx.fill();
-    
-    // 右耳
-    ctx.beginPath();
-    ctx.moveTo(25, -35);
-    ctx.lineTo(35, -55);
-    ctx.lineTo(15, -40);
-    ctx.closePath();
-    ctx.fill();
-    
-    // 耳朵内部
-    ctx.fillStyle = this.cheekColor;
-    ctx.globalAlpha = 0.5;
-    
-    ctx.beginPath();
-    ctx.moveTo(-25, -38);
-    ctx.lineTo(-30, -50);
-    ctx.lineTo(-18, -42);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(25, -38);
-    ctx.lineTo(30, -50);
-    ctx.lineTo(18, -42);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.globalAlpha = 1;
   }
   
   // 绘制点击效果

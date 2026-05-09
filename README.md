@@ -6,22 +6,25 @@
 
 ## ✨ 功能特点
 
-- 🐰 **可爱宠物**：粉色的小动物，有耳朵、腮红和丰富的表情
+- 🐰 **可爱宠物**：粉色的小动物，有丰富的帧动画表情
 - 🎮 **互动功能**：
   - 点击宠物会触发跳跃或旋转动作
   - 拖拽移动宠物位置
   - 随机漫步行为
   - 眨眼效果
 - 💫 **视觉效果**：
-  - Canvas 渲染
+  - 57帧 Canvas 动画渲染
   - 弹跳动画
   - 点击反应文字飘出
+  - 帧循环动画
 - 🪟 **桌面特性**：
   - 窗口透明
   - 始终置顶
+  - 启动时显示在右下角
   - 系统托盘图标
   - 双击隐藏到托盘
   - 关闭按钮隐藏窗口
+  - 从托盘菜单显示/退出
 
 ## 🚀 快速开始
 
@@ -61,17 +64,19 @@ npm run tauri build
 
 ```
 DeskPal/
-├── src/                    # 前端源码
-│   ├── Pet.js             # 宠物类（渲染、动画、交互）
-│   └── main.js            # 应用入口
-├── src-tauri/             # Tauri 后端
+├── frames/                    # 帧动画图片源
+├── src/                       # 前端源码
+│   ├── Pet.js                # 宠物类（渲染、动画、交互）
+│   ├── main.js               # 应用入口
+│   └── frames/               # 编译后的帧图片 (57帧)
+├── src-tauri/                # Tauri 后端
 │   ├── src/
-│   │   └── main.rs       # Rust 主程序
-│   ├── Cargo.toml         # Rust 依赖
-│   └── tauri.conf.json    # Tauri 配置
-├── index.html             # HTML 入口
-├── vite.config.js         # Vite 配置
-└── package.json           # Node 依赖
+│   │   └── main.rs          # Rust 主程序（窗口位置设置）
+│   ├── Cargo.toml           # Rust 依赖
+│   └── tauri.conf.json      # Tauri 配置
+├── index.html                # HTML 入口
+├── vite.config.js            # Vite 配置
+└── package.json              # Node 依赖
 ```
 
 ## 🎮 使用说明
@@ -85,16 +90,11 @@ DeskPal/
 | 托盘右键 | 显示菜单（显示/退出） |
 | 点击关闭按钮 | 隐藏窗口 |
 
-## 🔧 自定义宠物
+## 🔧 添加自定义帧动画
 
-可以修改 `src/Pet.js` 中的以下属性来自定义宠物外观：
+帧动画图片放在 `frames/` 目录下，命名为 `frame_XXXX.png` 格式（如 `frame_0000.png` 到 `frame_0056.png`）。
 
-```javascript
-this.bodyColor = '#FFB6C1';   // 身体颜色
-this.eyeColor = '#000';        // 眼睛颜色
-this.cheekColor = '#FF69B4';  // 腮红颜色
-this.size = 80;               // 宠物大小
-```
+代码会自动加载 `src/frames/` 目录下的所有帧并循环播放。
 
 ## 📝 待实现功能
 

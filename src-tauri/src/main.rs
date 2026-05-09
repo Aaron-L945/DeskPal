@@ -12,7 +12,25 @@ fn main() {
         .setup(|app| {
             // 窗口透明和置顶配置
             let window = app.get_webview_window("main").unwrap();
-            window.set_ignore_cursor_events(true).ok();
+            // 允许鼠标事件通过
+            window.set_ignore_cursor_events(false).ok();
+
+            // 获取窗口尺寸并设置到右下角
+            if let Ok(size) = window.inner_size() {
+                // 获取主屏幕尺寸
+                if let Some(monitor) = window.current_monitor().ok().flatten() {
+                    let screen_size = monitor.size();
+                    let screen_width = screen_size.width as i32;
+                    let screen_height = screen_size.height as i32;
+                    let window_width = size.width as i32;
+                    let window_height = size.height as i32;
+                    
+                    // 设置到右下角，保留20px边距
+                    let x = screen_width - window_width - 20;
+                    let y = screen_height - window_height - 60;
+                    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y })).ok();
+                }
+            }
 
             // 创建系统托盘菜单
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

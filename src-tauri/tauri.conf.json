@@ -13,14 +13,17 @@
     "windows": [
       {
         "title": "DeskPal",
-        "width": 200,
-        "height": 200,
+        "width": 300,
+        "height": 220,
         "resizable": false,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true,
-        "center": true
+        "focus": false,
+        "visible": true,
+        "x": 100,
+        "y": 100
       }
     ],
     "trayIcon": {
@@ -35,11 +38,7 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.png"
     ]
   }
 }

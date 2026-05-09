@@ -44,9 +44,12 @@ class DeskPalApp {
   setupMouseEvents() {
     // 鼠标按下
     this.canvas.addEventListener('mousedown', (e) => {
+      console.log('mouse down at:', e.clientX, e.clientY);
       const rect = this.canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
+      
+      console.log('canvas pos:', mouseX, mouseY, 'pet pos:', this.pet.x, this.pet.y);
       
       // 检测是否点击宠物
       if (this.pet.onClick(mouseX, mouseY)) {
