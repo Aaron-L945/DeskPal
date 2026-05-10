@@ -1,0 +1,31 @@
+# DeskPal 配置文件
+
+pet:
+  # 每组帧数量，播放完一组后暂停
+  frame_groups: [6, 8, 8, 4, 5, 8, 6, 6, 6]
+  # 暂停帧数（一组播放完后停顿时间）
+  pause_duration: 30
+  # 帧延迟（数值越小动画越快）
+  frame_delay: 8
+  # 宠物大小
+  size: 120
+
+window:
+  # 窗口宽度
+  width: 300
+  # 窗口高度
+  height: 220
+  # 窗口在屏幕右下角的边距
+  margin_bottom: 60
+  margin_right: 20
+
+# 帧导出配置
+export:
+  # 源图片路径
+  image_path: ikun-hoops/spritesheet.webp
+  # 每行帧数（与pet.frame_groups相同）
+  frame_groups: [6, 8, 8, 4, 5, 8, 6, 6, 6]
+  # 每帧宽度（像素）
+  slice_width: 192
+  # 输出目录
+  output: frames

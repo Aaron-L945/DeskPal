@@ -17,14 +17,18 @@ export class Pet {
     this.state = 'idle'; // idle, walk, run, jump, sleep, blink, spin
     this.direction = 1; // 1: 右, -1: 左
     
-    // 动画
-    this.frame = 0;
+    // 动画分组配置 (从配置文件加载或使用默认值)
+    this.frameGroups = [6, 8, 8, 4, 5, 8, 6, 6, 6];  // 每组帧数量
+    this.currentGroupIndex = 0;  // 当前组索引
+    this.currentFrameInGroup = 0;  // 组内帧索引
     this.frameCount = 0;
-    this.frameDelay = 20;  // 降低速度
-    this.animFPS = 4;
+    this.frameDelay = 8;  // 帧延迟
+    this.isPaused = false;  // 是否暂停中
+    this.pauseCounter = 0;  // 暂停计数器
+    this.pauseDuration = 30;  // 暂停帧数
     
     // 宠物大小
-    this.size = 120;  // 减小宠物尺寸以便完整显示
+    this.size = 120;
     
     // 点击效果
     this.clickEffect = null;
@@ -40,9 +44,84 @@ export class Pet {
     // 加载宠物图片 (独立帧)
     this.frames = [];
     this.imageLoaded = false;
-    this.totalFrames = 57;  // 57个帧 (frame_0000.png - frame_0056.png)
-    this.currentFrameIndex = 0;
+    this.totalFrames = 57;  // 57个帧
     this.loadFrames();
+    this.loadConfig();
+  }
+  
+  // 加载配置文件
+  async loadConfig() {
+    try {
+      const response = await fetch('/config.yaml');
+      const text = await response.text();
+      const config = this.parseYaml(text);
+      
+      if (config.pet) {
+        if (config.pet.frame_groups) {
+          this.frameGroups = config.pet.frame_groups;
+          // 更新总帧数
+          this.totalFrames = this.frameGroups.reduce((a, b) => a + b, 0);
+        }
+        if (config.pet.pause_duration) {
+          this.pauseDuration = config.pet.pause_duration;
+        }
+        if (config.pet.frame_delay) {
+          this.frameDelay = config.pet.frame_delay;
+        }
+        if (config.pet.size) {
+          this.size = config.pet.size;
+        }
+      }
+      console.log('📋 配置加载成功:', this.frameGroups);
+    } catch (err) {
+      console.log('📋 使用默认配置');
+    }
+  }
+  
+  // 简单YAML解析器
+  parseYaml(text) {
+    const result = {};
+    let currentSection = null;
+    
+    text.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      
+      if (trimmed.includes(':')) {
+        const [key, value] = trimmed.split(':').map(s => s.trim());
+        
+        if (!value) {
+          currentSection = key;
+          result[key] = {};
+        } else if (currentSection) {
+          if (value.startsWith('[') && value.endsWith(']')) {
+            // 解析数组
+            const arrayStr = value.slice(1, -1);
+            result[currentSection][key] = arrayStr.split(',').map(n => parseInt(n.trim()));
+          } else if (!isNaN(value)) {
+            result[currentSection][key] = parseInt(value);
+          } else {
+            result[currentSection][key] = value;
+          }
+        }
+      }
+    });
+    
+    return result;
+  }
+  
+  // 获取当前组的帧数
+  getCurrentGroupFrameCount() {
+    return this.frameGroups[this.currentGroupIndex];
+  }
+  
+  // 获取当前组在全局帧数组中的起始索引
+  getCurrentGroupStartIndex() {
+    let startIndex = 0;
+    for (let i = 0; i < this.currentGroupIndex; i++) {
+      startIndex += this.frameGroups[i];
+    }
+    return startIndex;
   }
   
   // 加载所有帧
@@ -69,9 +148,28 @@ export class Pet {
   update(screenWidth, screenHeight) {
     // 更新动画帧
     this.frameCount++;
-    if (this.frameCount >= this.frameDelay) {
-      this.frame = (this.frame + 1) % this.totalFrames;
+    
+    if (this.isPaused) {
+      // 暂停中，等待暂停结束
+      this.pauseCounter++;
+      if (this.pauseCounter >= this.pauseDuration) {
+        this.isPaused = false;
+        this.pauseCounter = 0;
+        // 切换到下一组
+        this.currentGroupIndex = (this.currentGroupIndex + 1) % this.frameGroups.length;
+        this.currentFrameInGroup = 0;
+      }
+    } else if (this.frameCount >= this.frameDelay) {
+      // 播放动画
       this.frameCount = 0;
+      this.currentFrameInGroup++;
+      
+      // 检查是否到达当前组末尾
+      if (this.currentFrameInGroup >= this.getCurrentGroupFrameCount()) {
+        // 进入暂停
+        this.isPaused = true;
+        this.currentFrameInGroup = 0;  // 重置组内帧索引
+      }
     }
     
     // 更新旋转角度
@@ -119,6 +217,11 @@ export class Pet {
     if (this.idleTimer > 180 && this.state === 'idle') {
       this.performIdleAction();
     }
+  }
+  
+  // 获取当前帧索引
+  getCurrentFrameIndex() {
+    return this.getCurrentGroupStartIndex() + this.currentFrameInGroup;
   }
   
   // 安排空闲动作
@@ -259,10 +362,11 @@ export class Pet {
     }
     
     // 绘制当前帧
-    if (this.imageLoaded && this.frames[this.frame]) {
+    const frameIndex = this.getCurrentFrameIndex();
+    if (this.imageLoaded && this.frames[frameIndex]) {
       const halfSize = this.size / 2;
       ctx.drawImage(
-        this.frames[this.frame],
+        this.frames[frameIndex],
         -halfSize, -halfSize, this.size, this.size
       );
     } else {

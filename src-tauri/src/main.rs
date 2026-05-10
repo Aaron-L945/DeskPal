@@ -6,6 +6,9 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+#[cfg(target_os = "windows")]
+use tauri::WebviewWindow;
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -14,6 +17,21 @@ fn main() {
             let window = app.get_webview_window("main").unwrap();
             // 允许鼠标事件通过
             window.set_ignore_cursor_events(false).ok();
+
+            // Windows上设置窗口背景透明
+            #[cfg(target_os = "windows")]
+            {
+                use windows::Win32::UI::WindowsAndMessaging::{SetLayeredWindowAttributes, LWA_COLORKEY, LWA_ALPHA};
+                use windows::Win32::Foundation::{HWND, COLORREF};
+                
+                if let Ok(hwnd) = window.hwnd() {
+                    unsafe {
+                        // 设置窗口为分层窗口，使用白色作为透明键
+                        let white = COLORREF(0xFFFFFF);
+                        let _ = SetLayeredWindowAttributes(HWND(hwnd.0 as _), white, 255, LWA_COLORKEY | LWA_ALPHA);
+                    }
+                }
+            }
 
             // 获取窗口尺寸并设置到右下角
             if let Ok(size) = window.inner_size() {

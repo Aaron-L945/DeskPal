@@ -1,6 +1,15 @@
 from PIL import Image
 import os
 import argparse
+import yaml
+
+def load_config():
+    """从config.yaml加载配置"""
+    config_path = 'config.yaml'
+    if os.path.exists(config_path):
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    return {}
 
 def extract_frames_final(
     image_path,
@@ -67,23 +76,45 @@ def extract_frames_final(
 
 # =================== 执行 ===================
 if __name__ == "__main__":
+    # 加载配置文件
+    config = load_config()
+    export_config = config.get('export', {})
+    
     parser = argparse.ArgumentParser(description='从雪碧图导出帧动画')
-    parser.add_argument('image_path', help='源图片路径')
-    parser.add_argument('--frames-per-row', '-r', type=str, required=True,
+    parser.add_argument('--image-path', '-i', type=str, 
+                        default=export_config.get('image_path', 'ikun-hoops/spritesheet.webp'),
+                        help='源图片路径')
+    parser.add_argument('--frames-per-row', '-r', type=str, 
+                        default=','.join(map(str, export_config.get('frame_groups', []))),
                         help='每行帧数，逗号分隔，如: 6,8,8,4,5')
-    parser.add_argument('--slice-width', '-w', type=int, default=192,
+    parser.add_argument('--slice-width', '-w', type=int, 
+                        default=export_config.get('slice_width', 192),
                         help='每帧宽度（像素），默认192')
-    parser.add_argument('--output', '-o', type=str, default='frames',
+    parser.add_argument('--output', '-o', type=str, 
+                        default=export_config.get('output', 'frames'),
                         help='输出目录，默认frames')
+    parser.add_argument('--use-config', '-c', action='store_true',
+                        help='强制使用配置文件中的值，忽略命令行参数')
     
     args = parser.parse_args()
     
     # 解析每行帧数
-    frames_per_row = [int(x.strip()) for x in args.frames_per_row.split(',')]
+    frames_str = args.frames_per_row.strip()
+    if not frames_str:
+        print("❌ 错误: frames_per_row 不能为空")
+        exit(1)
+    
+    frames_per_row = [int(x.strip()) for x in frames_str.split(',')]
+    
+    # 从配置读取的默认值会覆盖命令行默认值
+    # 如果命令行显式提供了值，则使用命令行的值
+    image_path = args.image_path
+    slice_width = args.slice_width
+    output_dir = args.output
     
     extract_frames_final(
-        image_path=args.image_path,
+        image_path=image_path,
         frames_per_row=frames_per_row,
-        slice_width=args.slice_width,
-        output_dir=args.output
+        slice_width=slice_width,
+        output_dir=output_dir
     )
